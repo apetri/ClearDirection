@@ -6,4 +6,4 @@ from django.http import HttpResponse
 
 # Create your views here.
 def welcome(request):
-	return HttpResponse("Welcome Clear Direction!!")
+	return HttpResponse("<h1>Welcome Clear Direction!!</h1>")
