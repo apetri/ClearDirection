@@ -42,7 +42,7 @@ def main():
 			"city" : fake.city(),
 			"zipcode" : fake.zipcode(),
 			"email" : first.lower() + last.lower() + "@" + fake.domain_name(),
-			"secret" : "secret",
+			"secret" : fake.password(),
 			"isreal" : False
 		}
 
