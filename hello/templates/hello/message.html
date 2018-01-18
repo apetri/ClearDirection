@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 
-	<title>Welcome</title>
+	<title>{{title}}</title>
 	<meta charset="UTF-8">
 
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
@@ -21,6 +21,13 @@ and is wrapped around the whole page content, except for the footer in this exam
   			<h1><b>{{title}}</b></h1>
   			<p>{{message}}</p>
 		</header>
+
+		<!-- Shortcuts -->
+  		<p class="w3-center">
+  			<span class="w3-tag"><a href="{% url 'lookup:insert' %}">Insert data</a></span>
+  			<span class="w3-tag"><a href="{% url 'lookup:query' %}">Query user</a></span>
+  			<span class="w3-tag"><a href="{% url 'lookup:log' %}">Log secret</a></span>
+  		</p>
 
 	</div>
 
