@@ -9,11 +9,14 @@ from django.urls import reverse
 
 from .models import Person,Hit,HitCount,OperationalError
 
-# Create your views here.
 
 #Password hashing
 def hashpwd(pwd):
 	return hashlib.sha256(bytes(pwd.encode("utf-8"))).hexdigest()
+
+##########################
+# Create your views here #
+##########################
 
 #Sample table
 def sampleTable(request):
@@ -43,7 +46,8 @@ def sampleForm(request):
 ##################
 
 def queryPersonDoNothing(request):
-	raise Http404("Method inactive.")
+	msg_keys = {"section":"Too bad!","result":"Database query is currently disabled."}
+	return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
 
 def queryPerson(request):
 
@@ -91,10 +95,12 @@ def queryPerson(request):
 		try:
 			people = list(Person.objects.raw(query))
 		except OperationalError:
-			raise Http404("Query error.")
+			msg_keys = {"section":"Too bad!","result":"Invalid SQL query: "+query}
+			return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
 
 		if not len(people):
-			raise Http404("No records found.")
+			msg_keys = {"section":"Too bad!","result":"No matching records found."}
+			return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
 		
 		table = [ [getattr(p,c) for c in fields] for p in people ]
 		context = {
@@ -113,27 +119,29 @@ def queryPerson(request):
 ##################
 
 def insertPersonDoNothing(request):
-	raise Http404("Method inactive.")
+	msg_keys = {"section":"Too bad!","result":"Insertion into database is currently disabled."}
+	return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
 
 def insertPerson(request):
+
+	#Information to fill
+	formfields = [  ["username","text"],
+					["password","password"],
+					["first","text"],
+					["last","text"],
+					["age","number"],
+					["street_address","text"],
+					["zipcode","text"],
+					["city","text"],
+					["email","text"],
+					["secret","password"],
+	]
 
 	if request.method=="GET":
 
 		##############################
 		#Return user insert data form#
 		##############################
-
-		formfields = [  ["username","text"],
-						["password","password"],
-						["first","text"],
-						["last","text"],
-						["age","number"],
-						["street_address","text"],
-						["zipcode","text"],
-						["city","text"],
-						["email","text"],
-						["secret","password"],
-		]
 		
 		context = {
 			"pagetitle":"Insert user data",
@@ -155,7 +163,42 @@ def insertPerson(request):
 		#Parse the request and insert the record#
 		#########################################
 
-		msg_keys = {"section":"Congratulations!","result":"Data insertion successful."}
+		#Parse POST request field by field
+		rec = { f[0]:request.POST[f[0]] for f in formfields }
+		
+		#Check valid insertion
+		musthave = ["username","password","first","last","secret"]
+		invalid = [ len(rec[f])==0 for f in musthave ]
+		if any(invalid):
+			msg_keys = { "section":"Too bad!","result":"One between {0} was empty.".format("-".join(musthave)) }
+			return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
+
+
+		rec["password"] = hashpwd(rec["password"])
+		rec["isreal"] = True
+
+		try:
+
+			#If username exists, update it
+			person = Person.objects.get(username=rec["username"])
+			for f in rec:
+				setattr(person,f,rec[f])
+
+			hcount = None
+
+		except Person.DoesNotExist:
+
+			#If it does not exist, create a new one
+			person = Person(**rec)
+			hcount = HitCount(username=rec["username"])
+
+		#Commit
+		person.save()
+		if hcount is not None:
+			hcount.save()
+
+		#Log success
+		msg_keys = {"section":"Congratulations!","result":"Record insertion successful."}
 		return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
 
 
@@ -165,20 +208,22 @@ def insertPerson(request):
 #####################
 
 def logSecretDoNothing(request):
-	raise Http404("Method inactive.")
+	msg_keys = {"section":"Too bad!","result":"Secret guessing is currently disabled."}
+	return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
 
 def logSecret(request):
+
+	#Fields in the form
+	formfields = [  ["source","text"],
+					["target","text"],
+					["secret","password"],
+	]
 	
 	if request.method=="GET":
 
 		###############################
 		#Return user guess secret form#
 		###############################
-
-		formfields = [  ["source","text"],
-						["target","text"],
-						["secret","text"],
-		]
 		
 		context = {
 			"pagetitle":"Guess secret word",
@@ -200,8 +245,55 @@ def logSecret(request):
 		#Check if source guessed target's secret word#
 		##############################################
 
-		msg_keys = {"section":"Congratulations!","result":"You guessed Puccio's secret."}
-		return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
+		#Get values from the request
+		source = request.POST["source"]
+		target = request.POST["target"]
+		secret = request.POST["secret"]
+
+		if len(Person.objects.filter(username=source)):
+
+			#Cannot guess your own secret
+			if source==target:
+				msg_keys = {"section":"Hey!","result":"You cannot guess your own secret."}
+				return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
+
+			#Construct the attempted guess
+			hit_try = Hit(source=source,target=target,secret=secret)
+
+			#Check if you scored a hit
+			try:
+				hit = Person.objects.get(username=target,secret=secret)
+				hit_try.valid = True
+				
+				if not hit.isreal:
+					msg_keys = {"section":"Hey!","result":"You have to guess real people's secrets."}
+					return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))	
+
+			except Person.DoesNotExist:
+				hit_try.valid = False
+				hit_try.save()
+				msg_keys = {"section":"Too bad!","result":"Your guess was incorrect."}
+				return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
+
+			#Check that you did not score it before
+			try:
+				Hit.objects.get(source=source,target=target,secret=secret,valid=True)
+				msg_keys = {"section":"Hey!","result":"You already guessed {0}'s secret.".format(target)}
+				return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
+			
+			except Hit.DoesNotExist:
+				hit_try.save()
+				count = HitCount.objects.get(username=source)
+				count.count += 1
+				count.save()
+				msg_keys = {"section":"Congratulations!","result":"You guessed {0}'s secret.".format(target)}
+				return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
+
+
+		else:
+			msg_keys = {"section":"Too bad!","result":"username {0} does not exist".format(source)}
+			return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
+
 
 
 #####################

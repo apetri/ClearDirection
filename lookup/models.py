@@ -36,7 +36,17 @@ class Hit(models.Model):
 	secret = models.CharField(max_length=20)
 	valid = models.BooleanField(default=False)
 
+	#################################################
+
+	def __str__(self):
+		return "{0}-->{1}".format(self.source,self.target)
+
 class HitCount(models.Model):
 
 	username = models.CharField(max_length=40)
 	count = models.IntegerField(default=0)
+
+	#################################################
+
+	def __str__(self):
+		return "user: {0}".format(self.username)
