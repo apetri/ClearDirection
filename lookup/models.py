@@ -1,3 +1,4 @@
+import datetime
 from django.db import models, OperationalError
 
 # Create your models here.
@@ -50,3 +51,14 @@ class HitCount(models.Model):
 
 	def __str__(self):
 		return "user: {0}".format(self.username)
+
+
+#########
+#Queries#
+#########
+
+class Query(models.Model):
+
+	qdate = models.DateTimeField("date submitted",default=datetime.datetime(2000,1,1))
+	query = models.CharField(max_length=200)
+	nrecords = models.IntegerField(default=0)

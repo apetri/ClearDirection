@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Person, Hit, HitCount
+from .models import Person, Hit, HitCount, Query
 
 ########
 #Person#
@@ -23,9 +23,16 @@ class HitCountAdmin(admin.ModelAdmin):
 	list_display = ["username","count"]
 	search_fields = ["username"]
 
+############
+#Query logs#
+############
+
+class QueryAdmin(admin.ModelAdmin):
+	list_display = ["qdate","query","nrecords"]
 
 ##########################################
 
 admin.site.register(Person,PersonAdmin)
 admin.site.register(Hit,HitAdmin)
 admin.site.register(HitCount,HitCountAdmin)
+admin.site.register(Query,QueryAdmin)

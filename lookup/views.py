@@ -6,8 +6,9 @@ import urllib
 from django.shortcuts import render
 from django.http import HttpResponse,HttpResponseRedirect,Http404
 from django.urls import reverse
+from django.utils import timezone
 
-from .models import Person,Hit,HitCount,OperationalError
+from .models import Person,Hit,HitCount,Query,OperationalError
 
 
 #Password hashing
@@ -89,14 +90,30 @@ def queryPerson(request):
 		query = query.format(",".join(fields),urllib.parse.unquote_plus(username),password)
 		query = query.split(";")[0]
 
+		#No wildcards allowed
+		if "*" in query:
+			msg_keys = {"section":"Hey!","result":"No wildcards allowed in query"}
+			return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
+
+		#Log the query
+		lquery = query.split("AND password")[0].split("WHERE")[-1]
+		lquery = "SELECT * FROM lookup_person WHERE" + lquery
+		if "AND password" in query:
+			lquery += " AND password='******'"
+
+		qlog = Query(qdate=timezone.now(),query=lquery)	
+
 		###################################################################
 
 		#Query the database 
 		try:
 			people = list(Person.objects.raw(query))
+			qlog.nrecords = len(people)
 		except OperationalError:
 			msg_keys = {"section":"Too bad!","result":"Invalid SQL query: "+query}
 			return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
+		finally:
+			qlog.save()
 
 		if not len(people):
 			msg_keys = {"section":"Too bad!","result":"No matching records found."}
