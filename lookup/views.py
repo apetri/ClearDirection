@@ -116,7 +116,7 @@ def queryPerson(request):
 			qlog.save()
 
 		if not len(people):
-			msg_keys = {"section":"Too bad!","result":"No matching records found."}
+			msg_keys = {"section":"Too bad!","result":"No matching records found, username or password are incorrect"}
 			return HttpResponseRedirect(reverse("lookup:logsubmission",kwargs=msg_keys))
 		
 		table = [ [getattr(p,c) for c in fields] for p in people ]
