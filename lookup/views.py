@@ -22,7 +22,7 @@ def hashpwd(pwd):
 #Sample table
 def sampleTable(request):
 
-	fields = ["username","first","last","age","street_address","city","zipcode","email","secret","isreal"]
+	fields = ["username","first","last","age","email","secret","isreal"]
 	table = [ [getattr(p,c) for c in fields] for p in Person.objects.all() ]
 	context = {"pagetitle":"Sample table","title":"Sample table","columns":fields,"table":table}
 
@@ -79,7 +79,7 @@ def queryPerson(request):
 		#Query the database#
 		####################
 
-		fields = ["username","first","last","age","street_address","city","zipcode","email","secret","isreal"]
+		fields = ["username","first","last","age","email","secret","isreal"]
 
 		#Hash password
 		username = request.GET["username"]
@@ -147,9 +147,6 @@ def insertPerson(request):
 					["first","text"],
 					["last","text"],
 					["age","number"],
-					["street_address","text"],
-					["zipcode","text"],
-					["city","text"],
 					["email","text"],
 					["secret","password"],
 	]

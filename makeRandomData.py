@@ -38,9 +38,6 @@ def main():
 			"username" : first.lower() + last.lower(),
 			"password" : hashpwd(last.upper()),
 			"age" : random.randint(18,80),
-			"street_address" : fake.street_address(),
-			"city" : fake.city(),
-			"zipcode" : fake.zipcode(),
 			"email" : first.lower() + last.lower() + "@" + fake.domain_name(),
 			"secret" : fake.password(),
 			"isreal" : False
