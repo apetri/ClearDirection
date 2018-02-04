@@ -82,12 +82,12 @@ def queryPerson(request):
 		fields = ["username","first","last","age","email","secret","isreal"]
 
 		#Hash password
-		username = request.GET["username"]
+		username = urllib.parse.unquote_plus(request.GET["username"]).replace("’","'")
 		password = hashpwd(request.GET["password"])
 
 		#Build query, making sure it permits SQL injection
 		query = "SELECT id,{0} FROM lookup_person WHERE username='{1}' AND password='{2}'"
-		query = query.format(",".join(fields),urllib.parse.unquote_plus(username),password)
+		query = query.format(",".join(fields),username,password)
 		query = query.split(";")[0]
 
 		#No wildcards allowed
